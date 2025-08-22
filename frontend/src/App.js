@@ -22,26 +22,50 @@ function App() {
   useEffect(() => {
     // Connect to WebSocket for real-time updates
     const wsUrl = `${BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://')}/api/ws`;
-    const ws = new WebSocket(wsUrl);
+    console.log('Attempting WebSocket connection to:', wsUrl);
+    
+    const connectWebSocket = () => {
+      const ws = new WebSocket(wsUrl);
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.type === 'status_update') {
-        setDetectionStatus(data.data);
-      } else if (data.type === 'alert') {
-        setAlerts(prev => [data.data, ...prev.slice(0, 9)]);
-      } else if (data.type === 'emergency') {
-        setAlerts(prev => [data.data, ...prev.slice(0, 9)]);
-      }
+      ws.onopen = () => {
+        console.log('WebSocket connected successfully');
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'status_update') {
+            setDetectionStatus(data.data);
+          } else if (data.type === 'alert') {
+            setAlerts(prev => [data.data, ...prev.slice(0, 9)]);
+          } else if (data.type === 'emergency') {
+            setAlerts(prev => [data.data, ...prev.slice(0, 9)]);
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+      ws.onclose = (event) => {
+        console.log('WebSocket connection closed:', event.code, event.reason);
+        // Attempt to reconnect after 5 seconds
+        setTimeout(connectWebSocket, 5000);
+      };
+
+      return ws;
     };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
+    const ws = connectWebSocket();
 
     return () => {
-      ws.close();
+      if (ws) {
+        ws.close();
+      }
     };
   }, []);
 
