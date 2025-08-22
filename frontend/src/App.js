@@ -1,51 +1,81 @@
-import { useEffect } from "react";
-import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import './App.css';
+import Dashboard from './components/Dashboard';
+import LostFound from './components/LostFound';
+import EmergencyCall from './components/EmergencyCall';
+import About from './components/About';
+import Navbar from './components/Navbar';
+import { Toaster } from './components/ui/toaster';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
+function App() {
+  const [alerts, setAlerts] = useState([]);
+  const [detectionStatus, setDetectionStatus] = useState({
+    1: { fire: false, crowd: 0, fight: false, stampede: false },
+    2: { fire: false, crowd: 0, fight: false, stampede: false },
+    3: { fire: false, crowd: 0, fight: false, stampede: false }
+  });
 
   useEffect(() => {
-    helloWorldApi();
+    // Connect to WebSocket for real-time updates
+    const wsUrl = `${BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://')}/api/ws`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'status_update') {
+        setDetectionStatus(data.data);
+      } else if (data.type === 'alert') {
+        setAlerts(prev => [data.data, ...prev.slice(0, 9)]);
+      } else if (data.type === 'emergency') {
+        setAlerts(prev => [data.data, ...prev.slice(0, 9)]);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    return () => {
+      ws.close();
+    };
   }, []);
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
-
-function App() {
-  return (
-    <div className="App">
+    <div className="App min-h-screen bg-gray-50">
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
+        <Navbar />
+        <main className="pt-16">
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <Dashboard 
+                  alerts={alerts} 
+                  detectionStatus={detectionStatus}
+                  apiUrl={API}
+                />
+              } 
+            />
+            <Route 
+              path="/lost-found" 
+              element={<LostFound apiUrl={API} />} 
+            />
+            <Route 
+              path="/emergency" 
+              element={<EmergencyCall apiUrl={API} />} 
+            />
+            <Route 
+              path="/about" 
+              element={<About />} 
+            />
+          </Routes>
+        </main>
+        <Toaster />
       </BrowserRouter>
     </div>
   );
