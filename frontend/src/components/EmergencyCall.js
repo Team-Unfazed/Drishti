@@ -268,7 +268,7 @@ const EmergencyCall = ({ apiUrl }) => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Response Time</span>
-                    <span className="text-blue-600 font-medium">< 30 seconds</span>
+                    <span className="text-blue-600 font-medium">&lt; 30 seconds</span>
                   </div>
                 </div>
               </CardContent>
