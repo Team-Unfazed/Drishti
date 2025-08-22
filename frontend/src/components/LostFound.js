@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
-import { useToast } from './ui/use-toast';
+import { useToast } from '../hooks/use-toast';
 import axios from 'axios';
 
 const LostFound = ({ apiUrl }) => {
